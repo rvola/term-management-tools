@@ -23,6 +23,7 @@ class Term_Management_Tools {
 		$actions = array(
 			'merge'        => __( 'Merge', 'term-management-tools' ),
 			'change_tax'   => __( 'Change taxonomy', 'term-management-tools' ),
+			'duplicate'    => __( 'Duplicate taxonomy', 'term-management-tools' ),
 		);
 
 		if ( is_taxonomy_hierarchical( $taxonomy ) ) {
@@ -142,6 +143,43 @@ class Term_Management_Tools {
 		return true;
 	}
 
+	static function handle_duplicate( $term_ids, $taxonomy ) {
+		global $wpdb;
+
+		if ( $term_ids ) {
+			foreach ( $term_ids as $old_term_id ) {
+
+				$current_term = get_term( $old_term_id, $taxonomy );
+				$new_term     = wp_insert_term(
+					"{$current_term->name} Copy",
+					$taxonomy,
+					array(
+						'description' => $current_term->description,
+						'slug'        => "{$current_term->slug}-copy",
+						'parent'      => $current_term->parent
+					)
+				);
+
+				if ( ! is_wp_error( $new_term ) ) {
+					$posts = get_objects_in_term( $old_term_id, $taxonomy );
+					if ( ! is_wp_error( $posts ) ) {
+						foreach ( $posts as $post_id ) {
+							$result = wp_set_post_terms( $post_id, $new_term['term_id'], $taxonomy, true );
+						}
+					}
+				}
+
+			}
+
+			clean_term_cache( $new_term['term_id'], $taxonomy );
+
+			do_action( 'term_management_tools_term_duplicated', $new_term['term_id'], $old_term_id, $taxonomy );
+
+			return true;
+		}
+
+	}
+
 	static function handle_set_parent( $term_ids, $taxonomy ) {
 		$parent_id = $_REQUEST['parent'];
 
@@ -230,6 +268,10 @@ class Term_Management_Tools {
 
 	static function input_merge( $taxonomy ) {
 		printf( __( 'into: %s', 'term-management-tools' ), '<input name="bulk_to_tag" type="text" size="20"></input>' );
+	}
+
+	static function input_duplicate( $taxonomy ) {
+		return false;
 	}
 
 	static function input_change_tax( $taxonomy ) {
