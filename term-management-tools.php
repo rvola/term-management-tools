@@ -164,7 +164,7 @@ class Term_Management_Tools {
 					$posts = get_objects_in_term( $old_term_id, $taxonomy );
 					if ( ! is_wp_error( $posts ) ) {
 						foreach ( $posts as $post_id ) {
-							$result = wp_set_post_terms( $post_id, $new_term['term_id'], $taxonomy, true );
+							wp_set_post_terms( $post_id, "{$current_term->slug}-copy", $taxonomy, true );
 						}
 					}
 				}
